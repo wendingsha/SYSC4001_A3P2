@@ -1,0 +1,92 @@
+Assignment 3 Part 2 - Report Part C
+Students: 101186335 and 101139708
+
+Execution Status Report:
+We ran the programs for Part A and Part B multiple times with varying numbers 
+of TAs (2, 5, and 10).
+
+- Part A Results:
+  In Part A, there were no deadlocks, but we observed race conditions. The 
+  output often showed multiple TAs printing "Modifying rubric" or "Marking Q1" 
+  at the same time. This confirms that without synchronization, the processes 
+  interfere with each other.
+
+- Part B Results:
+  In Part B, we observed no deadlocks or livelocks. The execution order was 
+  orderly and synchronized. The TAs successfully processed all 20 exams and 
+  terminated correctly when student 9999 was reached.
+
+Execution Order Discussion (Part B):
+Since there were no deadlocks, this is the observed execution order:
+
+1. Initialization: The main process loads the rubric and the first exam into 
+   shared memory, then forks the TA processes.
+
+2. Concurrent Processing:
+   - Rubric Phase: TAs contend for the SEM_RUBRIC lock. One TA gets it, 
+     checks/modifies the rubric, and releases it. Others wait in a queue.
+   - Marking Phase: TAs contend for the SEM_EXAM lock.
+     - A TA gets the lock, scans for an unmarked question, marks it as 
+       "in progress" and releases the lock.
+     - It then simulates marking (sleeping) outside the critical section, 
+       allowing other TAs to grab other questions.
+     - After marking, it reacquires the lock to update the status to "marked".
+
+3. Exam Transitions:
+   - When a TA finds all questions marked, it holds the lock and loads the 
+     next exam file. Other TAs waiting for work will see the new exam 
+     once the lock is released.
+
+4. Termination:
+   - When a TA loads the exam with student ID "9999", it sets a "finished" 
+     flag. All TAs see this flag and exit.
+
+Design Discussion - Critical Section Requirements:
+1. Mutual Exclusion
+   If one process is executing in its critical section, no 
+   other processes can be executing in their critical sections.
+
+   - We used two binary semaphores (mutexes): SEM_RUBRIC and SEM_EXAM.
+   - For the rubric: Before any TA modifies the rubric file, they must call 
+     sem_wait(SEM_RUBRIC) which locks it. If another TA tries to modify it 
+     at the same time, they are blocked until the first TA finishes and 
+     calls sem_signal, guaranteeing only one writer at a time.
+   - For the exam: When a TA checks which questions are unmarked or updates 
+     a questions status to "marked", they hold SEM_EXAM preventing two 
+     TAs from grabbing the same question number or loading the next exam 
+     file simultaneously.
+
+2. Progress
+   If no process is in the critical section and some 
+   processes wish to enter, only those processes not in their remainder 
+   sections can participate in the decision, and this selection cant be 
+   postponed indefinitely.
+
+   - The design ensures progress because we don't have any strict 
+     alternation or dependency on a specific TA ID.
+   - If the critical section is free, the first TA to request it gets it 
+     immediately.
+   - If a TA is doing "remainder" work (the 1-2 second marking delay), 
+     they do not hold any locks, so they don't stop other TAs from entering 
+     the critical section to pick a new question.
+
+3. Bounded Waiting
+   There must be a limit on the number of times other processes 
+   are allowed to enter their critical sections after a process has made a 
+   request to enter its critical section and before that request is granted.
+
+   - The System V semaphore implementation in Linux generally uses a 
+     FIFO queue for blocked processes.
+   - Meaning if TA 1 is waiting for the rubric, it joins a queue. Even 
+     if TA 2 and TA 3 come later, TA 1 will eventually get the lock once 
+     the current owner releases it, so no TA gets starved or waits forever.
+
+Deadlock/Livelock Analysis:
+- Deadlocks are avoided by ensuring TAs never hold more than one lock at a 
+  time in a way that creates a circular wait.
+- We acquire the lock, do the update (shared memory write), and 
+  release it immediately before doing the long simulation work (sleep).
+- Livelock is avoided because TAs always either find work, wait a small 
+  amount of time (yield), or move to the next exam. They don't get stuck 
+  in a loop of constantly changing state without progress.
+

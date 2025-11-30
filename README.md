@@ -4,17 +4,17 @@ Students: 101186335 and 101139708
 ## How to Compile
 Included a Makefile so you can run `make` in the terminal to build everything.
 
-If you want to compile them manually you can do:
+## If you want to compile them manually you can do:
 gcc -o Part2_A Part2_A_101186335_101139708.c
 gcc -o Part2_B Part2_B_101186335_101139708.c
 
 ## How to Run
 You need to pass the number of TAs you want as an argument.
 
-For Part A (No Semaphores):
+## For Part A (No Semaphores):
 ./Part2_A 2
 
-For Part B (With Semaphores):
+## For Part B (With Semaphores):
 ./Part2_B 2
 
 (You can change 2 to however many TAs you want to test with, like 5 or 10).

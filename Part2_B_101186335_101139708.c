@@ -136,7 +136,6 @@ int main(int argc, char *argv[]) {
 void ta_process(int ta_id, int shm_id, int sem_id) {
     SharedData *shared;
     int i;
-    int work_done_this_cycle;
     int question_to_mark;
     char current_student[10];
     int all_marked;
@@ -177,7 +176,6 @@ void ta_process(int ta_id, int shm_id, int sem_id) {
         }
 
         // mark phase
-        work_done_this_cycle = 0;
         
         while (1) {
             question_to_mark = -1;
@@ -221,8 +219,6 @@ void ta_process(int ta_id, int shm_id, int sem_id) {
                 shared->exam.questions_status[question_to_mark] = STATUS_MARKED;
                 printf("TA %d: Finished Q%d for Student %s.\n", ta_id, question_to_mark + 1, current_student);
                 sem_signal(sem_id, SEM_EXAM);
-                
-                work_done_this_cycle = 1;
             } else {
                 // yield
                 usleep(100000); 
